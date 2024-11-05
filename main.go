@@ -54,11 +54,10 @@ type Deck struct {
 // }
 
 func (game *Game) checkStatus(user string) string {
+	var total int
 	if user == "Player" {
-		var total int
-		for i := 0; i < len(game.playerCards); i++ {
-			total += int(game.playerCards[i].value)
-		}
+		total = game.totalCount("Player")
+
 		if total > 21 {
 			return "exit"
 		} else if total == 21 {
@@ -67,18 +66,18 @@ func (game *Game) checkStatus(user string) string {
 			return "S"
 		}
 	} else {
-		var total int
-		for i := 0; i < len(game.dealerCards); i++ {
-			total += int(game.dealerCards[i].value)
-		}
+		total = game.totalCount("Dealer")
+
 		if total > 21 {
 			return "exit"
+		} else if total == 21 {
+			return "Winner"
 		} else if total < 17 {
 			return "H"
+		} else {
+			return "S"
 		}
-		return "S"
 	}
-
 }
 
 func (d *Deck) create() {
@@ -121,19 +120,21 @@ func (game *Game) showCards(user string) {
 	var total int
 	fmt.Printf("Cards of %s :", user)
 	if user == "Dealer" {
-		for i := 0; i < len(game.dealerCards); i++ {
+		for i := 0; i < len(game.dealerCards)-1; i++ {
 			card := game.dealerCards[i].getString()
-			total += int(game.dealerCards[i].value)
 			fmt.Printf(card + " + ")
 		}
+		fmt.Printf(game.dealerCards[len(game.dealerCards)-1].getString())
+		total = game.totalCount("Dealer")
 	} else if user == "Player" {
-		for i := 0; i < len(game.playerCards); i++ {
+		for i := 0; i < len(game.playerCards)-1; i++ {
 			card := game.playerCards[i].getString()
-			total += int(game.playerCards[i].value)
 			fmt.Printf(card + " + ")
 		}
+		fmt.Printf(game.playerCards[len(game.playerCards)-1].getString())
+		total = game.totalCount("Player")
 	}
-	fmt.Printf(": %d\n", total)
+	fmt.Printf(" = %d\n", total)
 }
 
 func (game *Game) play(bet float64) float64 {
@@ -147,9 +148,11 @@ func (game *Game) play(bet float64) float64 {
 	Doption = game.checkStatus("Dealer")
 	if Poption == "Winner" {
 		fmt.Println("You won the bet")
+		game.showCards("Dealer")
 		return bet
 	} else if Poption == "exit" {
 		fmt.Println("You are busted!!!.")
+		game.showCards("Dealer")
 		return -bet
 	} else if Doption == "Winner" {
 		fmt.Println("Dealer Won")
@@ -172,13 +175,14 @@ func (game *Game) play(bet float64) float64 {
 		}
 		if Poption == "Winner" {
 			fmt.Println("You won the bet")
+			game.showCards("Dealer")
 			return bet
 		} else if Poption == "exit" {
 			fmt.Println("You are busted!!!.")
+			game.showCards("Dealer")
 			return -bet
 		}
 
-		Doption = game.checkStatus("Dealer")
 		if Doption == "H" {
 			game.dealerTurn()
 			Doption = game.checkStatus("Dealer")
@@ -195,14 +199,9 @@ func (game *Game) play(bet float64) float64 {
 			return bet
 		}
 	}
-	var totalD int
-	for i := 0; i < len(game.dealerCards); i++ {
-		totalD += int(game.dealerCards[i].value)
-	}
-	var totalP int
-	for i := 0; i < len(game.dealerCards); i++ {
-		totalP += int(game.playerCards[i].value)
-	}
+	totalD := game.totalCount("Dealer")
+	totalP := game.totalCount("Player")
+
 	if (21 - totalD) < (21 - totalP) {
 		fmt.Println("Winner is Dealer")
 		game.showCards("Dealer")
@@ -218,6 +217,36 @@ func (game *Game) play(bet float64) float64 {
 		return 0
 	}
 
+}
+
+func (game *Game) totalCount(user string) int {
+	var total int
+	if user == "Player" {
+		for _, card := range game.playerCards {
+			total += card.value
+		}
+		if total <= 11 {
+			for _, card := range game.playerCards {
+				if card.value == 1 {
+					total += 10
+					break
+				}
+			}
+		}
+	} else {
+		for _, card := range game.dealerCards {
+			total += card.value
+		}
+		if total <= 11 {
+			for _, card := range game.dealerCards {
+				if card.value == 1 {
+					total += 10
+					break
+				}
+			}
+		}
+	}
+	return total
 }
 
 func (game *Game) playerTurn() {
